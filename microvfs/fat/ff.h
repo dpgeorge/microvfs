@@ -47,6 +47,11 @@ typedef uint32_t DWORD;
 #endif
 
 
+// block device structure
+typedef struct _mvfs_bdev_t {
+    BYTE pdrv;
+} mvfs_bdev_t;
+
 
 /* Definitions of volume management */
 
@@ -56,11 +61,9 @@ typedef struct {
     BYTE pt;    /* Partition: 0:Auto detect, 1-4:Forced partition) */
 } PARTITION;
 extern PARTITION VolToPart[];    /* Volume - Partition resolution table */
-#define LD2PD(vol) (VolToPart[vol].pd)    /* Get physical drive number */
 #define LD2PT(vol) (VolToPart[vol].pt)    /* Get partition index */
 
 #else                            /* Single partition configuration */
-#define LD2PD(vol) (BYTE)(vol)    /* Each logical drive is bound to the same physical drive number */
 #define LD2PT(vol) 0            /* Find first valid partition or in SFD */
 
 #endif
@@ -93,8 +96,8 @@ typedef char TCHAR;
 /* File system object structure (FATFS) */
 
 typedef struct {
+    mvfs_bdev_t *bdev;      // block device underlying this filesystem
     BYTE    fs_type;        /* FAT sub-type (0:Not mounted) */
-    BYTE    drv;            /* Physical drive number */
     BYTE    csize;            /* Sectors per cluster (1,2,4...128) */
     BYTE    n_fats;            /* Number of FAT copies (1 or 2) */
     BYTE    wflag;            /* win[] flag (b0:dirty) */
@@ -253,7 +256,7 @@ FRESULT f_getlabel (const TCHAR* path, TCHAR* label, DWORD* vsn);    /* Get volu
 FRESULT f_setlabel (const TCHAR* label);                            /* Set volume label */
 FRESULT f_mount (FATFS* fs, const TCHAR* path, BYTE opt);            /* Mount/Unmount a logical drive */
 FRESULT f_mkfs (const TCHAR* path, BYTE sfd, UINT au);                /* Create a file system on the volume */
-FRESULT f_fdisk (BYTE pdrv, const DWORD szt[], void* work);            /* Divide a physical drive into some partitions */
+FRESULT f_fdisk (mvfs_bdev_t *bdev, const DWORD szt[], void* work); /* Divide a physical drive into some partitions */
 
 #define f_eof(fp) ((int)((fp)->fptr == (fp)->fsize))
 #define f_error(fp) ((fp)->err)
